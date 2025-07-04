@@ -1,0 +1,7 @@
+[submodule "extern/imgui"]
+	path = extern/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "extern/imgui-sfml"]
+	path = extern/imgui-sfml
+	url = https://github.com/eliasdaler/imgui-sfml.git
+	branch = 2.6.x
