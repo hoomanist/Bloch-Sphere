@@ -26,6 +26,8 @@ int main() {
     int last_trail_count = 0;
     std::vector<sf::Vector3f> blochTrail;
     double fidelity = 1;
+    double total_phase = 0;
+    auto init_psi = RotatingField_Hamiltonian(0).eigenvectors().second;
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -55,7 +57,7 @@ int main() {
             }
         }
         if (playing)
-            time += ImGui::GetIO().DeltaTime*3;
+            time += ImGui::GetIO().DeltaTime*5;
 
 
         ImGui::SFML::Update(window, deltaClock.restart());
@@ -70,7 +72,7 @@ int main() {
                          ImGuiWindowFlags_NoMove |
                          ImGuiWindowFlags_NoCollapse;
 
-        ImGui::SetNextWindowSize(ImVec2(400, 150), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_Always);
         ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
 
         ImGui::Begin("Controls", nullptr, flags);
@@ -85,6 +87,7 @@ int main() {
         ImGui::Text("Rotation Y: %.1f", rotationY);
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
         ImGui::Text("Fidelity: %.1f", fidelity);
+        ImGui::Text("Total Phase: %.1f", total_phase);
 
         ImGui::End();
 
@@ -110,12 +113,16 @@ int main() {
         drawSphere();
         drawAxes();
 
-        auto psi = RotatingField_Hamiltonian(0).eigenvectors().second;
-        std::cout << psi << "\n";
-        psi = evolve(RotatingField_Hamiltonian, psi, &time, 0.01);
+        //dynamics
+        auto psi = evolve(RotatingField_Hamiltonian, init_psi, &time, 0.01);
+        auto omega = 0.05;
+        auto rotate = Exp(Complex(0, 0.5*omega*time)*Pauli::Z, 20);
+        // psi = rotate*psi;
+        fidelity = std::abs(inner_product(psi, init_psi));
+        total_phase = std::arg(inner_product(psi, init_psi));
+        
+        // drawing the vectors
         sf::Vector3f bVec = blochVector(psi);
-        fidelity = std::abs(inner_product(psi, RotatingField_Hamiltonian(time).eigenvectors().second));
- 
         if (blochTrail.size() > 300) // limit trail length
             blochTrail.erase(blochTrail.begin());
         if (last_trail_count == 6)

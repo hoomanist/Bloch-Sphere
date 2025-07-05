@@ -9,8 +9,8 @@ ComplexMatrix2x2 LandauZener_Hamiltonian(double t) {
 }
 
 ComplexMatrix2x2 RotatingField_Hamiltonian(double t) {
-    double theta = M_PI / 4;
-    double omega = 0.03;
+    double theta = M_PI / 2;
+    double omega = 0.05;
     double T = 2*M_PI / omega;
     double B_0 = 1;
     ComplexMatrix2x2 H_x = B_0 * sin(theta)*cos(omega*t) * Pauli::X;
