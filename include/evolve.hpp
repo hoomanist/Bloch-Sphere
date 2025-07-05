@@ -17,15 +17,17 @@ ComplexVector2 rk4_step(ComplexMatrix2x2 (*H)(double), const ComplexVector2& psi
     return psi + (dt / 6.0) * (k1 + 2.0*k2 + 2.0*k3 + k4);
 }
 
-ComplexVector2 evolve(ComplexMatrix2x2 (*H)(double), const ComplexVector2& initial_state, double *t_end, double dt) {
+std::pair<ComplexVector2, double> evolve(ComplexMatrix2x2 (*H)(double), const ComplexVector2& initial_state, double *t_end, double dt) {
     ComplexVector2 psi = initial_state;
+    double phase;
     double t = 0;
     while (t < *t_end) {
         psi = rk4_step(H, psi, t, dt);
+        phase +=  -0.5*(H(t+dt).eigenvalues().second - H(t).eigenvalues().second).real()*dt;
         t += dt;
     
         // normalize to counter numerical drift
         psi = (1/std::sqrt(std::norm(psi.data[0]) + std::norm(psi.data[1]))) *psi ;
     }
-    return psi; 
+    return {psi, phase}; 
 }

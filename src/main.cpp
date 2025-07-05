@@ -26,7 +26,7 @@ int main() {
     int last_trail_count = 0;
     std::vector<sf::Vector3f> blochTrail;
     double fidelity = 1;
-    double total_phase = 0;
+    double total_phase, dyanmical_phase, berry_phase = 0;
     auto init_psi = RotatingField_Hamiltonian(0).eigenvectors().second;
     while (window.isOpen()) {
         sf::Event event;
@@ -88,6 +88,8 @@ int main() {
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
         ImGui::Text("Fidelity: %.1f", fidelity);
         ImGui::Text("Total Phase: %.1f", total_phase);
+        ImGui::Text("Dynamical Phase: %.1f", dyanmical_phase);
+        ImGui::Text("Berry Phase: %.1f", berry_phase);
 
         ImGui::End();
 
@@ -114,12 +116,16 @@ int main() {
         drawAxes();
 
         //dynamics
-        auto psi = evolve(RotatingField_Hamiltonian, init_psi, &time, 0.01);
+        auto pair = evolve(RotatingField_Hamiltonian, init_psi, &time, 0.01);
+        auto psi = pair.first;
         auto omega = 0.05;
         auto rotate = Exp(Complex(0, 0.5*omega*time)*Pauli::Z, 20);
         // psi = rotate*psi;
         fidelity = std::abs(inner_product(psi, init_psi));
         total_phase = std::arg(inner_product(psi, init_psi));
+        dyanmical_phase = pair.second;
+        berry_phase = total_phase-dyanmical_phase;
+        
         
         // drawing the vectors
         sf::Vector3f bVec = blochVector(psi);
