@@ -2,6 +2,8 @@
 #include "../include/linalg.hpp"
 #include "../include/sphere.hpp"
 #include "../include/pauli.hpp"
+#include "../include/evolve.hpp"
+#include "hamiltonian.hpp"
 #include <iostream>
 #include <SFML/Graphics.hpp>
 #include <imgui.h>
@@ -13,16 +15,16 @@ int main() {
     window.setVerticalSyncEnabled(true);
     ImGui::SFML::Init(window);
 
-    // Initial qubit state (|0>)
-    std::complex<double> psi[2] = {1, 0};
 
     float rotationX = 20.0f, rotationY = -30.0f;
     float zoom = 3.0f;
-
+    double time;
     sf::Clock deltaClock;
     bool dragging = false;
+    bool playing = false;
     sf::Vector2i lastMousePos;
 
+    std::vector<sf::Vector3f> blochTrail;
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -51,6 +53,9 @@ int main() {
                 if (zoom > 10.0f) zoom = 10.0f;
             }
         }
+        if (playing)
+            time += ImGui::GetIO().DeltaTime;
+
 
         ImGui::SFML::Update(window, deltaClock.restart());
 
@@ -68,9 +73,17 @@ int main() {
         ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
 
         ImGui::Begin("Controls", nullptr, flags);
-        float time;
-        ImGui::SliderFloat("Time", &time, 0.0f, 10.0f);
+        double minTime = 0.0;
+        double maxTime = 20.0;
+        ImGui::SliderScalar("Time", ImGuiDataType_Double, &time, &minTime, &maxTime);
         ImGui::SliderFloat("Zoom", &zoom, 1.0f, 10.0f);
+        if (ImGui::Button(playing ? "Pause" : "Play") )
+            playing = !playing;
+        
+        if (playing and time > maxTime){
+            time = 0;
+            blochTrail.clear();
+        }
         ImGui::Text("Rotation X: %.1f", rotationX);
         ImGui::Text("Rotation Y: %.1f", rotationY);
         ImGui::End();
@@ -96,13 +109,18 @@ int main() {
 
         // Draw sphere grid
         drawSphere();
-
-        // Draw axes
-        drawAxes();
-
         // Draw Bloch vector
+        // Initial qubit state (|0>)
+
+        auto psi = ComplexVector2({1, 0});
+        psi = evolve(LandauZener_hamiltonian, psi, &time, 0.0001);
         sf::Vector3f bVec = blochVector(psi);
+        blochTrail.push_back(bVec);
+        if (blochTrail.size() > 1000) // limit trail length
+            blochTrail.erase(blochTrail.begin());
+
         drawVector(bVec);
+        drawTrail(blochTrail);
 
         // Draw ImGui on top
         ImGui::SFML::Render(window);

@@ -1,3 +1,4 @@
+#pragma once
 #include <SFML/Graphics.hpp>
 #include <SFML/OpenGL.hpp>
 #include <imgui.h>
@@ -6,13 +7,13 @@
 #include <cmath>
 
 // Helper: convert state vector to Bloch vector
-sf::Vector3f blochVector(const std::complex<double> psi[2]) {
+sf::Vector3f blochVector(ComplexVector2 psi) {
     // <sigma_x> = 2 Re(psi0* psi1)
     // <sigma_y> = 2 Im(psi0* psi1)
     // <sigma_z> = |psi0|^2 - |psi1|^2
-    double x = 2.0 * (psi[0].real() * psi[1].real() + psi[0].imag() * psi[1].imag());
-    double y = 2.0 * (psi[0].imag() * psi[1].real() - psi[0].real() * psi[1].imag());
-    double z = std::norm(psi[0]) - std::norm(psi[1]);
+    double x = 2.0 * (psi.data[0].real() * psi.data[1].real() + psi.data[0].imag() * psi.data[1].imag());
+    double y = 2.0 * (psi.data[0].imag() * psi.data[1].real() - psi.data[0].real() * psi.data[1].imag());
+    double z = std::norm(psi.data[0]) - std::norm(psi.data[1]);
     return {float(x), float(y), float(z)};
 }
 
@@ -62,6 +63,18 @@ void drawAxes(float length = 1.2f) {
     glVertex3f(0, 0, 0); glVertex3f(0, 0, length);
     glEnd();
     glLineWidth(1.0f);
+}
+
+
+void drawTrail(const std::vector<sf::Vector3f>& bt) {
+    glBegin(GL_LINE_STRIP);
+    glColor3f(0.5f, 1.0f, 0.5f); // trail color
+
+    for (const auto& p : bt)
+        glVertex3f(p.x, p.y, p.z);
+
+    glEnd();
+
 }
 
 // Draw Bloch vector as arrow (line + cone-ish)

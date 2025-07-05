@@ -1,3 +1,4 @@
+#pragma once
 #include "linalg.hpp"
 #include "hamiltonian.hpp"
 #include <functional>
@@ -16,10 +17,10 @@ ComplexVector2 rk4_step(ComplexMatrix2x2 (*H)(double), const ComplexVector2& psi
     return psi + (dt / 6.0) * (k1 + 2.0*k2 + 2.0*k3 + k4);
 }
 
-ComplexVector2 evolve(ComplexMatrix2x2 (*H)(double), const ComplexVector2& initial_state, double t_end, double dt) {
+ComplexVector2 evolve(ComplexMatrix2x2 (*H)(double), const ComplexVector2& initial_state, double *t_end, double dt) {
     ComplexVector2 psi = initial_state;
     double t = 0;
-    while (t < t_end) {
+    while (t < *t_end) {
         psi = rk4_step(H, psi, t, dt);
         t += dt;
     
