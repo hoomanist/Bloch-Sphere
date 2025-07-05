@@ -23,8 +23,9 @@ int main() {
     bool dragging = false;
     bool playing = false;
     sf::Vector2i lastMousePos;
-
+    int last_trail_count = 0;
     std::vector<sf::Vector3f> blochTrail;
+    double fidelity = 1;
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -54,7 +55,7 @@ int main() {
             }
         }
         if (playing)
-            time += ImGui::GetIO().DeltaTime;
+            time += ImGui::GetIO().DeltaTime*3;
 
 
         ImGui::SFML::Update(window, deltaClock.restart());
@@ -74,18 +75,17 @@ int main() {
 
         ImGui::Begin("Controls", nullptr, flags);
         double minTime = 0.0;
-        double maxTime = 20.0;
+        double maxTime = 50.0;
         ImGui::SliderScalar("Time", ImGuiDataType_Double, &time, &minTime, &maxTime);
         ImGui::SliderFloat("Zoom", &zoom, 1.0f, 10.0f);
         if (ImGui::Button(playing ? "Pause" : "Play") )
             playing = !playing;
         
-        if (playing and time > maxTime){
-            time = 0;
-            blochTrail.clear();
-        }
         ImGui::Text("Rotation X: %.1f", rotationX);
         ImGui::Text("Rotation Y: %.1f", rotationY);
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::Text("Fidelity: %.1f", fidelity);
+
         ImGui::End();
 
         // Clear and setup OpenGL
@@ -102,23 +102,28 @@ int main() {
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
-        // Camera transform: move back and rotate
         glTranslatef(0, 0, -zoom);
         glRotatef(rotationX, 1, 0, 0);
         glRotatef(rotationY, 0, 1, 0);
 
-        // Draw sphere grid
+
         drawSphere();
-        // Draw Bloch vector
-        // Initial qubit state (|0>)
+        drawAxes();
 
-        auto psi = ComplexVector2({1, 0});
-        psi = evolve(LandauZener_hamiltonian, psi, &time, 0.0001);
+        auto psi = RotatingField_Hamiltonian(0).eigenvectors().second;
+        std::cout << psi << "\n";
+        psi = evolve(RotatingField_Hamiltonian, psi, &time, 0.01);
         sf::Vector3f bVec = blochVector(psi);
-        blochTrail.push_back(bVec);
-        if (blochTrail.size() > 1000) // limit trail length
+        fidelity = std::abs(inner_product(psi, RotatingField_Hamiltonian(time).eigenvectors().second));
+ 
+        if (blochTrail.size() > 300) // limit trail length
             blochTrail.erase(blochTrail.begin());
-
+        if (last_trail_count == 6)
+        {
+            blochTrail.push_back(bVec);
+            last_trail_count = 0;
+        }
+        last_trail_count++;
         drawVector(bVec);
         drawTrail(blochTrail);
 

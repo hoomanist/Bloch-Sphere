@@ -5,22 +5,21 @@
 #include <imgui-SFML.h>
 #include <complex>
 #include <cmath>
-
-// Helper: convert state vector to Bloch vector
+#include "expectation.hpp"
+#include "pauli.hpp"
 sf::Vector3f blochVector(ComplexVector2 psi) {
-    // <sigma_x> = 2 Re(psi0* psi1)
-    // <sigma_y> = 2 Im(psi0* psi1)
-    // <sigma_z> = |psi0|^2 - |psi1|^2
-    double x = 2.0 * (psi.data[0].real() * psi.data[1].real() + psi.data[0].imag() * psi.data[1].imag());
-    double y = 2.0 * (psi.data[0].imag() * psi.data[1].real() - psi.data[0].real() * psi.data[1].imag());
-    double z = std::norm(psi.data[0]) - std::norm(psi.data[1]);
+    psi.normalize(); 
+
+    double x = expectation(Pauli::X, psi); 
+    double y = expectation(Pauli::Y, psi); 
+    double z = expectation(Pauli::Z, psi); 
+
     return {float(x), float(y), float(z)};
+
 }
 
-// Draw sphere wireframe
 void drawSphere(int latSegments = 20, int longSegments = 20) {
     glColor3f(0.7f, 0.7f, 0.7f);
-    // Latitude lines
     for (int i = 0; i <= latSegments; ++i) {
         float lat = M_PI * (-0.5f + float(i) / latSegments);
         glBegin(GL_LINE_LOOP);
@@ -33,7 +32,6 @@ void drawSphere(int latSegments = 20, int longSegments = 20) {
         }
         glEnd();
     }
-    // Longitude lines
     for (int j = 0; j <= longSegments; ++j) {
         float lon = 2.0f * M_PI * float(j) / longSegments;
         glBegin(GL_LINE_STRIP);
@@ -48,17 +46,13 @@ void drawSphere(int latSegments = 20, int longSegments = 20) {
     }
 }
 
-// Draw axes
 void drawAxes(float length = 1.2f) {
     glLineWidth(2.0f);
     glBegin(GL_LINES);
-    // X axis red
     glColor3f(1, 0, 0);
     glVertex3f(0, 0, 0); glVertex3f(length, 0, 0);
-    // Y axis green
     glColor3f(0, 1, 0);
     glVertex3f(0, 0, 0); glVertex3f(0, length, 0);
-    // Z axis blue
     glColor3f(0, 0, 1);
     glVertex3f(0, 0, 0); glVertex3f(0, 0, length);
     glEnd();
@@ -68,7 +62,7 @@ void drawAxes(float length = 1.2f) {
 
 void drawTrail(const std::vector<sf::Vector3f>& bt) {
     glBegin(GL_LINE_STRIP);
-    glColor3f(0.5f, 1.0f, 0.5f); // trail color
+    glColor3f(0.5f, 1.0f, 0.5f);
 
     for (const auto& p : bt)
         glVertex3f(p.x, p.y, p.z);
@@ -77,7 +71,6 @@ void drawTrail(const std::vector<sf::Vector3f>& bt) {
 
 }
 
-// Draw Bloch vector as arrow (line + cone-ish)
 void drawVector(const sf::Vector3f& v) {
     glColor3f(1, 1, 0); // yellow
     glLineWidth(3.0f);
@@ -87,11 +80,8 @@ void drawVector(const sf::Vector3f& v) {
     glEnd();
     glLineWidth(1.0f);
 
-    // Simple cone tip: just a small sphere around tip for demo
     glPushMatrix();
     glTranslatef(v.x, v.y, v.z);
-    // glutSolidSphere would be nice here, but let's fake it:
-    // Draw a tiny icosahedron or point
     glPointSize(5.0f);
     glBegin(GL_POINTS);
     glVertex3f(0, 0, 0);

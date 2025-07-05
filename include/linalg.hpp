@@ -12,6 +12,16 @@ struct ComplexVector2 {
     ComplexVector2 conjugate() const {
         return ComplexVector2({std::conj(data[0]),std::conj(data[1])});
     }
+    void normalize() {
+        double norm = std::sqrt(
+            std::norm(data[0]) + std::norm(data[1])
+        );
+        if (norm > 0) {
+            data[0] /= norm;
+            data[1] /= norm;
+        }
+    }
+
     ComplexVector2 operator+(const ComplexVector2& other) const {
         ComplexVector2 result;
         result.data[0] = data[0] + other.data[0];
@@ -96,6 +106,35 @@ struct ComplexMatrix2x2{
         }
 
         return result;
+    }
+
+    Complex trace() {
+        return data[0][0] + data[1][1];
+    }
+
+    Complex determinant() {
+        return (data[0][0]*data[1][1]) - (data[0][1]*data[1][0]);
+    }
+
+
+    std::pair<Complex, Complex> eigenvalues() {
+        Complex tr = trace();
+        Complex det = determinant();
+        Complex delta = std::sqrt( tr*tr - (Complex(4)*det));
+        auto lambda1 = 0.5*(-tr + delta);
+        auto lambda2 = 0.5*(-tr - delta);
+        return std::pair{lambda1, lambda2};
+    }
+
+    std::pair<ComplexVector2, ComplexVector2> eigenvectors() {
+        auto lambdas = eigenvalues();
+        Complex v2_1 = (lambdas.first - data[0][0]) / data[0][1];
+        ComplexVector2 V1 = {{1.0, v2_1}};
+        Complex v2_2 = (lambdas.second - data[0][0]) / data[0][1];
+        ComplexVector2 V2 = {{1.0, v2_2}};
+        V1.normalize();
+        V2.normalize();
+        return {V1, V2};
     }
 
     public:
