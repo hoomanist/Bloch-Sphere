@@ -9,7 +9,9 @@ using Complex = std::complex<double>;
 struct ComplexVector2 {
     std::array<Complex, 2> data;
 
-
+    ComplexVector2 conjugate() const {
+        return ComplexVector2({std::conj(data[0]),std::conj(data[1])});
+    }
     ComplexVector2 operator+(const ComplexVector2& other) const {
         ComplexVector2 result;
         result.data[0] = data[0] + other.data[0];
@@ -129,4 +131,10 @@ ComplexMatrix2x2 Exp(ComplexMatrix2x2 A, size_t terms) {
     }
     return result;
     
+}
+
+
+Complex inner_product(ComplexVector2 v1, ComplexVector2 v2) {
+    auto conjugate = v1.conjugate();
+    return conjugate.data[0]*v2.data[0] + conjugate.data[1]*v2.data[1];
 }
