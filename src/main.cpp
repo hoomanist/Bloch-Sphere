@@ -10,24 +10,33 @@
 #include <imgui-SFML.h>
 
 
+
+void setuo() {}
+
+void loop() {}
+
+
 int main() {
+
+    // window initialize
     sf::RenderWindow window(sf::VideoMode(1400, 900), "Bloch Sphere Viewer", sf::Style::Default, sf::ContextSettings(24));
     window.setVerticalSyncEnabled(true);
     ImGui::SFML::Init(window);
-
-
-    float rotationX = 20.0f, rotationY = -30.0f;
-    float zoom = 3.0f;
     double time;
     sf::Clock deltaClock;
+
+    // constants and settings
+    float rotationX = 20.0f, rotationY = -30.0f;
+    float zoom = 3.0f;
     bool dragging = false;
     bool playing = false;
     sf::Vector2i lastMousePos;
-    int last_trail_count = 0;
-    std::vector<sf::Vector3f> blochTrail;
-    double fidelity = 1;
-    double total_phase, dyanmical_phase, berry_phase = 0;
+
+    // schrodinger dynamics
     auto init_psi = RotatingField_Hamiltonian(0).eigenvectors().second;
+    auto evolution = Evolution(RotatingField_Hamiltonian, init_psi, 0.001);
+    evolution.evolve(100000);
+    
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -56,10 +65,6 @@ int main() {
                 if (zoom > 10.0f) zoom = 10.0f;
             }
         }
-        if (playing)
-            time += ImGui::GetIO().DeltaTime*5;
-
-
         ImGui::SFML::Update(window, deltaClock.restart());
 
         ImGui::StyleColorsLight();
@@ -86,10 +91,6 @@ int main() {
         ImGui::Text("Rotation X: %.1f", rotationX);
         ImGui::Text("Rotation Y: %.1f", rotationY);
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-        ImGui::Text("Fidelity: %.1f", fidelity);
-        ImGui::Text("Total Phase: %.1f", total_phase);
-        ImGui::Text("Dynamical Phase: %.1f", dyanmical_phase);
-        ImGui::Text("Berry Phase: %.1f", berry_phase);
 
         ImGui::End();
 
@@ -116,29 +117,18 @@ int main() {
         drawAxes();
 
         //dynamics
-        auto pair = evolve(RotatingField_Hamiltonian, init_psi, &time, 0.01);
-        auto psi = pair.first;
-        auto omega = 0.05;
-        auto rotate = Exp(Complex(0, 0.5*omega*time)*Pauli::Z, 20);
-        // psi = rotate*psi;
-        fidelity = std::abs(inner_product(psi, init_psi));
-        total_phase = std::arg(inner_product(psi, init_psi));
-        dyanmical_phase = pair.second;
-        berry_phase = total_phase-dyanmical_phase;
-        
+        auto bloch_trail = evolution.get_trail(time);     
+        auto psi = evolution.get_current(time);
+        if (playing){
+            time += ImGui::GetIO().DeltaTime*5;
+            evolution.increment_processed();
+
+        }
         
         // drawing the vectors
         sf::Vector3f bVec = blochVector(psi);
-        if (blochTrail.size() > 300) // limit trail length
-            blochTrail.erase(blochTrail.begin());
-        if (last_trail_count == 6)
-        {
-            blochTrail.push_back(bVec);
-            last_trail_count = 0;
-        }
-        last_trail_count++;
         drawVector(bVec);
-        drawTrail(blochTrail);
+        drawTrail(bloch_trail);
 
         // Draw ImGui on top
         ImGui::SFML::Render(window);
